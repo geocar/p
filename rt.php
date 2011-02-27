@@ -143,7 +143,7 @@ $MAPCAR=intern('mapcar');$APPLY=intern('apply');$APPEND=intern('append');
 $PLUS = intern('+'); $MINUS = intern('-');
 $TIMES = intern('*'); $DIVIDE = intern('*'); $MOD = intern('mod');
 $LT=intern('<');$GT=intern('>');$LTE=intern('<=');$GTE=intern('>=');
-$EQL=intern('=');$NE=intern('/=');$EQ=intern('eq');
+$EQL=intern('=');$NE=intern('/=');$EQ=intern('eq');$AREF=intern('aref');
 $DEFUN = intern('defun');$DEFVAR=intern('defvar');$DEFMACRO=intern('defmacro');
 $PHP= intern('php');$LISP_T=intern('t');$LISP_NIL=intern('nil');$IF=intern('if');
 function PROGN(){$n=func_num_args();return $n?func_get_arg($n-1):null;}
@@ -172,3 +172,14 @@ function MACEX($c,&$f){
   return cons(car($c),MACEX(cdr($c),$f)); }
 function macroexpand1($c){$y=false;return MACEX($c,$y);}
 function macroexpand($c){ $y=true;do{$y=false;$c=MACEX($c,$y);}while($y); return $c; }
+
+function AREF_PUT($a,$b,$c){
+  if(consp($a)){for(;$b>0&&$a;$b--)$a=cdr($a);if($b)error("bounds");return $a->car=$c;}
+  if(is_array($a))return $a[$b]=$c;
+  error("type");
+}
+function AREF_GET($a,$b){
+  if(consp($a)){for(;$b>0&&$a;$b--)$a=cdr($a);if($b)error("bounds");return $a->car;}
+  if(is_array($a))return $a[$b];
+  error("type");
+}

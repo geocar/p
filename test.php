@@ -19,3 +19,5 @@ lisp_print(lisp_eval(parse("(append '(0) '(1 2 3))")));
 lisp_print(lisp_eval(parse("[1 2 3]")));
 lisp_print(lisp_eval(parse("(let ((tst 234)) tst)")));
 lisp_print(lisp_eval(parse("tst")));
+lisp_print(lisp_eval(parse("(setf (aref tst 1) 'q)")));
+lisp_print(lisp_eval(parse("tst")));

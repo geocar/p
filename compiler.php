@@ -196,6 +196,26 @@ class _CompilationUnit {
   public function compile_let($y,$b){return $this->_compile_vlet('let','VARS','compile_expr',$y,$b);}
   public function compile_flet($y,$b){return $this->_compile_vlet('flet','FUNS','compile_fun',$y,$b);}
   public function compile_fun($c,$d) { return '(new '.$this->compile_lambda(null, $c,$d).'($this))'; }
+
+
+  function getf($y){
+    global $LISP_T,$LISP_NIL;
+    global $AREF, $CAR, $CDR, $FUNCTION;
+
+    if($y===$LISP_T||$y===$LISP_NIL)error('cant getf: '.tostring($y));
+    if(symbolp($y)){if(is_null($g=$this->bound($y)))error('not bound: '.tostring($y));return $g;}
+    if(!consp($y))error('cant getf: '.tostring($y));
+    $d=car($y); $a=cadr($y);
+    if($d===$CAR||$d===$CDR)return $this->compile_expr($a).'->'.$d->name;
+    if($d===$FUNCTION)return '$DYNAMIC_FUNS["'.addslashes(id($a)).'"]';
+    error('cant getf: '.tostring($y));}
+  public function compile_setf($y,$val) {
+    global $AREF;
+    if(consp($y)){
+      $a=car($y);
+      if($a===$AREF){return 'AREF_PUT('.$this->getf(cadr($y)).','.$this->compile_expr(caddr($y)).','.$val.')';}
+    }
+    return $this->getf($y).'='.$val;}
   public function compile_expr($c) {
     global $LAMBDA, $FUNCTION, $CAR, $CDR;
     global $LET, $FLET, $FUNCALL, $SETF, $PROGN,$PROG1,$MAPCAR,$APPLY,$APPEND;
@@ -203,7 +223,7 @@ class _CompilationUnit {
     global $LT,$GT,$LTE,$GTE,$EQL,$NE,$EQ;
     global $DEFUN,$DEFVAR,$DEFMACRO;
     global $DYNAMIC_FUNS,$DYNAMIC_VARS,$GLOBAL_MACROS;
-    global $QUOTE,$PHP,$IF,$BACKQUOTE;
+    global $QUOTE,$PHP,$IF,$BACKQUOTE,$AREF;
     global $LISP_T,$LISP_NIL;
     global $COMPILER_FH,$COMPILER_PRE;
     if(symbolp($c)){
@@ -244,6 +264,7 @@ class _CompilationUnit {
       error('not fbound: '.tostring($a));}
     elseif($a===$LET){ return $this->compile_let(cadr($c),cddr($c)); }
     elseif($a===$FLET){ return $this->compile_flet(cadr($c),cddr($c)); }
+    elseif($a===$AREF){ return 'AREF_GET('.$this->compile_expr(cadr($c)).','.$this->compile_expr(caddr($c)).')';}
     elseif($a===$IF){
       $o=array();
       $d=true;
@@ -260,16 +281,7 @@ class _CompilationUnit {
     elseif($a===$APPLY){$f='APPLY';$g='';}
     elseif($a===$CAR){$f='car';$g='';}
     elseif($a===$CDR){$f='cdr';$g='';}
-    elseif($a===$SETF){$y=cadr($c);
-      if($y===$LISP_T||$y===$LISP_NIL)error('no');
-      if(consp($y)){ $d=car($y);$a=cadr($y);
-	      //xxx
-        if($d===$CAR||$d===$CDR)$g=$this->compile_expr($a).'->'.$d->name;
-        elseif($d===$FUNCTION)$g='$DYNAMIC_FUNS["'.addslashes(id($a)).'"]';
-        else error('not setf');}
-      elseif(!symbolp($y))error('not symbol');
-      elseif(is_null($g=$this->bound($y)))error('not bound: '.tostring($y));
-      return $g.'='.$this->compile_expr(caddr($c));}
+    elseif($a===$SETF){return $this->compile_setf(cadr($c),$this->compile_expr(caddr($c)));}
     elseif($a===$PLUS){return implode('+',$this->compile_args(cdr($c)));}
     elseif($a===$MINUS){return implode('-',$this->compile_args(cdr($c)));}
     elseif($a===$TIMES){return implode('*',$this->compile_args(cdr($c)));}
