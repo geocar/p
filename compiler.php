@@ -1,11 +1,12 @@
 <?php // compiler
 $COMPILER_FH=null;
-$COMPILER_PRE='global $LISP_T,$LISP_NIL,$DYNAMIC_VARS,$DYNAMIC_FUNS,$DYNAMIC_MACS;';
+$COMPILER_PRE='global $LISP_T,$LISP_NIL,$DYNAMIC_VARS,$DYNAMIC_FUNS,$GLOBAL_MACROS,$NULL_ITERATOR;';
 function const_data($k) {
   global $LISP_T,$LISP_NIL;
 
   if(is_null($k))return 'null';
   if($k===$LISP_T)return '$LISP_T';
+  if($k===$LISP_NIL)return '$LISP_NIL';
   if(symbolp($k)){return '_Symbol::find_symbol("'.addslashes($k->name).'",'.$k->id.')';}
   if(is_numeric($k)) return $k;
   if(is_string($k))return '"'.addslashes($k).'"';

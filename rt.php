@@ -43,6 +43,17 @@ class _Symbol {
     return '#:'.$s;
   }
 };
+class _NullIterator implements Iterator,Countable{
+  public function __construct() { }
+  public function current(){ return false;}
+  public function key(){return false;}
+  public function next(){}
+  public function rewind(){}
+  public function valid(){return false;}
+  public function count() {return 0;}
+};
+$NULL_ITERATOR=new _NullIterator();
+function NI($s){global $NULL_ITERATOR;if(is_null($s))return $NULL_ITERATOR;return $s;}
 class _ConsIterator implements Iterator{
   public $first;
   public $x;
@@ -140,19 +151,24 @@ function PROG1(){$n=func_num_args();return $n?func_get_arg(0):null;}
 function _V1($a,&$b,$c,$d) { $b=$a;return $d;}
 function _V2($c){ $a=array();foreach($c as $k=>$v){$a[$k]=$v;} return $a;}
 function MAPCAR($f){ $n=func_num_args(); $a=array();
-  for($i=1;$i<$n;++$i){ foreach(func_get_arg($i) as $c){$a[]=$f->__invoke($c);}} return array2cons($a);}
+  for($i=1;$i<$n;++$i){foreach(NI(func_get_arg($i)) as $c){$a[]=$f->__invoke($c);}}
+  return array2cons($a);}
 function APPEND(){ $n=func_num_args(); $a=array();
-  for($i=0;$i<$n;++$i){ foreach(func_get_arg($i) as $c){$a[]=$c;}} return array2cons($a);}
+  for($i=0;$i<$n;++$i){ foreach(NI(func_get_arg($i)) as $c){$a[]=$c;}}
+  return array2cons($a);}
  
 function APPLY($f){ $n=func_num_args(); $a=array();
   for($i=1;$i<($n-1);++$n)$a[]=func_get_arg($i);
-  if($n>1){foreach(func_get_arg($n-1) as $c){$a[]=$c;}}
+  if($n>1){foreach(NI(func_get_arg($n-1)) as $c){$a[]=$c;}}
   return call_user_func_array(array($f,'__invoke'),$a);}
 
 function error($c){throw new Exception(tostring($c));}
 function MACEX($c,&$f){
+  global $GLOBAL_MACROS;
   if(!consp($c))return $c;
-  if(isset($DYNAMIC_MACS[$a=car($c)])){$f=true; return APPLY($DYNAMIC_MACS[$a],cdr($c)); }
+  $a=car($c);
+  if(symbolp($a)&& isset($GLOBAL_MACROS[$n=id($a)])){
+    $f=true; $r=APPLY($GLOBAL_MACROS[$n],cdr($c)); return $r;}
   return cons(car($c),MACEX(cdr($c),$f)); }
 function macroexpand1($c){$y=false;return MACEX($c,$y);}
 function macroexpand($c){ $y=true;do{$y=false;$c=MACEX($c,$y);}while($y); return $c; }
