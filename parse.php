@@ -1,4 +1,14 @@
 <?php // readers
+function char($c){switch(strtolower($c)){
+  case 'newline':return"\n";
+  case 'return':return"\r";
+  case 'tab':return"\t";
+  case 'rubout':return"\b";
+  case 'linefeed':return"\n";
+  case 'page':return"\f";
+  case 'space':return" ";
+  default:return $c;
+}}
 abstract class _AbstractCharStream {
   abstract public function get();
   abstract public function unget();
@@ -99,6 +109,7 @@ function _parse1($h) {
     if($c=="'"){return cons($FUNCTION,cons(_parse1($h),null));}
     if($c=='<'){error('unreadable');}
     if($c==':'){return gensym(_parseW($h,''));}
+    if($c=="\\"){return char(_parseW($h,''));}
     if($c=='!'){
       $c=_parseW($h,$c);
       foreach(_Symbol::$k as $k => $v){if($v->id == $c)return $v;}
