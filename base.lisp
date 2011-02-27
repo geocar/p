@@ -43,3 +43,4 @@
     'nil))
 (defmacro cond form
   (apply #'cond->if form))
+(setf (function quit) #'(php exit))
