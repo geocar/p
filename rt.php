@@ -1,6 +1,6 @@
 <?php
 $DYNAMIC_FUNS=array();
-$DYNAMIC_MACS=array();
+$GLOBAL_MACROS=array();
 $DYNAMIC_VARS=array();
 
 $UNINTERNED_CACHE_LOADER=array();
