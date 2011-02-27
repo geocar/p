@@ -78,7 +78,7 @@ function _parseW($h,$s){
     $c=$h->get();
     if(is_null($c))return $s;
     if($c=="\\"){$c=_parseC($h);}
-    elseif(strchr("[]().,'\"",$c)!==false){$h->unget();return $s;}
+    elseif(strchr("#[]().,'\"",$c)!==false){$h->unget();return $s;}
     elseif(ctype_space($c))return $s;
     $s.=$c;}}
 function _parse1($h) {
