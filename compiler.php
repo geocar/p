@@ -51,7 +51,6 @@ function compile_file($in,$out=null,$verbose=false) {
   fclose($COMPILER_FH);
   $COMPILER_FH=$tmp;
   compiler_noise("creating \"$out\"");
-  $COMPILER_FH=fopen("$out.tmp",'w');
   $COMPILER_VERBOSE=$oldv;
   rename("$out.tmp","$out");
   return $r;
