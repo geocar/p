@@ -19,7 +19,10 @@ function const_data($k) {
 function eval_helper($r){
   global $COMPILER_FH;
   if(!is_null($COMPILER_FH))fputs($COMPILER_FH,$r);
-  return eval($r);
+  if(false===($g=eval($r))) {
+    echo ";; COMPILER BUG $r\n";
+  }
+  return $g;
 }
 function compile_file($in,$out=null) {
   global $COMPILER_FH,$COMPILER_PRE;
@@ -125,7 +128,8 @@ class _CompilationUnit {
   }
   public function bound($s) {
     global $DYNAMIC_VARS,$LISP_T,$LISP_NIL;
-    if($s===$LISP_T){return '$LISP_T';} if($s===$LISP_NIL){return 'null';}
+    if($s===$LISP_T){return '$LISP_T';}
+    if($s===$LISP_NIL){return 'null';}
     if(substr($s,0,1)==':'){return const_data($s);} // keywordp
 
     $y=id($s);
@@ -167,12 +171,12 @@ class _CompilationUnit {
     global $PLUS,$MINUS,$TIMES,$DIVIDE,$MOD;
     global $LT,$GT,$LTE,$GTE,$EQL,$NE,$EQ;
     global $DEFUN,$DEFVAR,$DEFMACRO;
-    global $DYNAMIC_FUNS,$DYNAMIC_VARS,$DYNAMIC_MACS;
+    global $DYNAMIC_FUNS,$DYNAMIC_VARS,$GLOBAL_MACROS;
     global $QUOTE,$PHP,$IF,$BACKQUOTE;
     global $LISP_T,$LISP_NIL;
     global $COMPILER_FH;
     if(symbolp($c)){
-      if(is_null($d=$this->bound($c)))error('not bound');
+      if(is_null($d=$this->bound($c)))error('not bound: '.tostring($c));
       return $d;}
     if(!consp($c)) return const_data($c);
     $g='->__invoke';
@@ -199,7 +203,7 @@ class _CompilationUnit {
       if($a===$EQL)return $this->lambda_op('eql','==');
       if($a===$NE)return $this->lambda_op('ne','!=');
       if($a===$EQ)return $this->lambda_op('eq','===');
-      error('not fbound');}
+      error('not fbound: '.tostring($a));}
     elseif($a===$LET){ return $this->compile_let(cadr($c),cddr($c)); }
     elseif($a===$FLET){ return $this->compile_flet(cadr($c),cddr($c)); }
     elseif($a===$IF){
@@ -222,11 +226,11 @@ class _CompilationUnit {
       if($y===$LISP_T||$y===$LISP_NIL)error('no');
       if(consp($y)){ $d=car($y);$a=cadr($y);
 	      //xxx
-        if($d===$CAR||$d===$CDR)$y=$this->compile_expr($a).'->'.$d->name;
+        if($d===$CAR||$d===$CDR)$g=$this->compile_expr($a).'->'.$d->name;
         else error('not setf');}
       elseif(!symbolp($y))error('not symbol');
-      elseif(is_null($y=$this->bound($y)))error('not bound');
-      return $y.'='.$this->compile_expr(caddr($c));}
+      elseif(is_null($g=$this->bound($y)))error('not bound: '.tostring($y));
+      return $g.'='.$this->compile_expr(caddr($c));}
     elseif($a===$PLUS){return implode('+',$this->compile_args(cdr($c)));}
     elseif($a===$MINUS){return implode('-',$this->compile_args(cdr($c)));}
     elseif($a===$TIMES){return implode('*',$this->compile_args(cdr($c)));}
@@ -243,20 +247,22 @@ class _CompilationUnit {
     elseif($a===$DEFMACRO){$y=cadr($c);
       $f = $this->compile_lambda($y, caddr($c),cdddr($c));
       $d=id($y); unset($DYNAMIC_FUNS[$d]);
-      $DYNAMIC_MACS[$d] = new $f(null);
+      $GLOBAL_MACROS[$d] = new $f(null);
       if(!is_null($COMPILER_FH)) {
         $y=addslashes($d);
         fputs($COMPILER_FH,'unset($DYNAMIC_FUNS["'.$y.'"]);'."\n");
-        fputs($COMPILER_FH,'$DYNAMIC_MACS["'.$y.'"]=new '.$f."(null);\n");
+        fputs($COMPILER_FH,'$GLOBAL_MACROS["'.$y.'"]=new '.$f."(null);\n");
       }
       return const_data($y);}
     elseif($a===$DEFUN){$y=cadr($c);
+      $d=id($y); unset($GLOBAL_MACROS[$d]);
+      $DYNAMIC_FUNS[$d] = true;
       $f = $this->compile_lambda($y, caddr($c),cdddr($c));
-      $d=id($y); unset($DYNAMIC_MACS[$d]);
       $DYNAMIC_FUNS[$d] = new $f(null);
+
       if(!is_null($COMPILER_FH)) {
         $y=addslashes($d);
-        fputs($COMPILER_FH,'unset($DYNAMIC_MACS["'.$y.'"]);'."\n");
+        fputs($COMPILER_FH,'unset($GLOBAL_MACROS["'.$y.'"]);'."\n");
         fputs($COMPILER_FH,'$DYNAMIC_FUNS["'.$y.'"]=new '.$f."(null);\n");
       }
       return const_data($y);}
@@ -264,7 +270,7 @@ class _CompilationUnit {
       $r = cddr($c) ? $this->compile_expr(caddr($c)) : 'null';
       $x='$DYNAMIC_VARS["'.addslashes(id($y)).'"]='.$r.";\n";
       eval_helper($x);return const_data($y);}
-    elseif(is_null($f=$this->fbound($a))){error('not fbound');}
+    elseif(is_null($f=$this->fbound($a))){error('not fbound: '.tostring($a));}
     return $f.$g.'('.implode(',',$this->compile_args(cdr($c))).')';
   }
   public function genid() {
