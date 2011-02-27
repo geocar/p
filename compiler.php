@@ -68,6 +68,25 @@ class _CompilationUnit {
     eval_helper(implode('',$o));
     return _CompilationUnit::$LAMBDA_OP[$f] = "new $s()";
   }
+  public function lambda_fun($name){//wraps php function as lambda
+    if(isset(_CompilationUnit::$LAMBDA_OP[$name])){ return _CompilationUnit::$LAMBDA_OP[$name]; }
+    $o=array();
+
+    $s = $this->genid();
+
+    $o[] = "class $s { ";
+    $o[] = 'public function docstring() { return "';
+    $o[] = $name;
+    $o[] = ' primitive"; }';
+    $o[] = 'public function prototype() { global $ARGS;return $ARGS; } ';
+    $o[] = 'public function __toString(){return "#<primitive ';
+    $o[] = $name;
+    $o[] = '>"; } public function __construct($ignored=null) { }';
+    $o[] = 'public function __invoke() { return call_user_func_array(';
+    $o[] = "'$name',func_get_args()); } };\n";
+    eval_helper(implode('',$o));
+    return _CompilationUnit::$LAMBDA_OP[$name] = "new $s()";
+  }
 
   public function __construct($p) {
     $this->vars = array();
@@ -191,6 +210,11 @@ class _CompilationUnit {
     elseif($a===$BACKQUOTE){return $this->backquote(cadr($c));}
     elseif($a===$FUNCTION){
       if(!is_null($y=$this->fbound($a=cadr($c))))return $y;
+      if($a===$CAR)return $this->lambda_fun('car');
+      if($a===$CDR)return $this->lambda_fun('cdr');
+      if($a===$APPLY)return $this->lambda_fun('APPLY');
+      if($a===$MAPCAR)return $this->lambda_fun('MAPCAR');
+      if($a===$APPEND)return $this->lambda_fun('APPEND');
       if($a===$PLUS)return $this->lambda_op('plus','+');
       if($a===$MINUS)return $this->lambda_op('minus','-');
       if($a===$TIMES)return $this->lambda_op('times','*');
