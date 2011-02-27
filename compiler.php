@@ -388,6 +388,9 @@ function lisp_eval($c){
   global $COMPILER_FH,$COMPILER_PRE;
   $x=new _CompilationUnit(null);
   $r=$x->compile_expr(macroexpand($c));
+  if(!is_null($COMPILER_FH)) {
+    fputs($COMPILER_FH,"$r;\n");
+  }
   return eval($COMPILER_PRE.'$r='.$r.';return $r;');
 }
 function lisp_print($s) {
