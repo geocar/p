@@ -175,7 +175,7 @@ class _CompilationUnit {
     for(;$y;$y=cdr($y)){
       if(symbolp($a=car($y)))$this->$f($a);
       elseif(!consp($a))error('no '.$f);//no let, no flet
-      else{$j=$this->$f(car($a));$k=$this->$e(cadr($a),caddr($a));$o[]="($j=($k))";}}
+      else{$j=$this->$f(car($a));$k=$this->$e(cadr($a),caddr($a));$o[]="(\$$j=($k))";}}
     for(;$b;$b=cdr($b)){
       $o[]=$this->compile_expr(car($b));
     }
