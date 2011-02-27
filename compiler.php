@@ -224,6 +224,8 @@ class _CompilationUnit {
     elseif($a===$BACKQUOTE){return $this->backquote(cadr($c));}
     elseif($a===$FUNCTION){
       if(!is_null($y=$this->fbound($a=cadr($c))))return $y;
+      if(consp($a) && car($a)===$PHP){$f=cadr($a);if(!symbolp($f)){error('not php');}
+        return $this->lambda_fun($f->name);}
       if($a===$CAR)return $this->lambda_fun('car');
       if($a===$CDR)return $this->lambda_fun('cdr');
       if($a===$APPLY)return $this->lambda_fun('APPLY');
@@ -241,8 +243,6 @@ class _CompilationUnit {
       if($a===$EQL)return $this->lambda_op('eql','==');
       if($a===$NE)return $this->lambda_op('ne','!=');
       if($a===$EQ)return $this->lambda_op('eq','===');
-      if($a===$PHP){$f=caddr($c);if(!symbolp($f)){error('not php');}
-        return $this->lambda_fun($f->name);}
       error('not fbound: '.tostring($a));}
     elseif($a===$LET){ return $this->compile_let(cadr($c),cddr($c)); }
     elseif($a===$FLET){ return $this->compile_flet(cadr($c),cddr($c)); }
