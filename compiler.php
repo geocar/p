@@ -306,6 +306,7 @@ class _CompilationUnit {
     for($x = $a; $x; $x = cdr($x)) {
       $y=consp($x)?car($x):$x;
       $o[] = $comma . '$' . $g->let($y);
+      if(!consp($x)) $o[] = '=null';
       $comma=',';
     }
     $o[] = ') { global $DYNAMIC_FUNS,$DYNAMIC_VARS,$LISP_T,$LISP_NIL;';
