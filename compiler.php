@@ -267,6 +267,7 @@ class _CompilationUnit {
       if(consp($y)){ $d=car($y);$a=cadr($y);
 	      //xxx
         if($d===$CAR||$d===$CDR)$g=$this->compile_expr($a).'->'.$d->name;
+        elseif($d===$FUNCTION)$g='$DYNAMIC_FUNS["'.addslashes(id($a)).'"]';
         else error('not setf');}
       elseif(!symbolp($y))error('not symbol');
       elseif(is_null($g=$this->bound($y)))error('not bound: '.tostring($y));
