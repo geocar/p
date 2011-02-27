@@ -43,4 +43,10 @@
     'nil))
 (defmacro cond form
   (apply #'cond->if form))
+(defun code-char (c)
+  (if (< c 128)
+    ((php chr) c)
+    ((php mb_convert_encoding) ((php pack) "N" c) "UTF-8" "UCS-4BE")))
+(defun char-code (s)
+  ((php unpack) "N" ((php mb_convert_encoding) s "UCS-4BE" "UTF-8")))
 (setf #'quit #'(php exit))
