@@ -205,7 +205,7 @@ class _CompilationUnit {
     global $DYNAMIC_FUNS,$DYNAMIC_VARS,$GLOBAL_MACROS;
     global $QUOTE,$PHP,$IF,$BACKQUOTE;
     global $LISP_T,$LISP_NIL;
-    global $COMPILER_FH;
+    global $COMPILER_FH,$COMPILER_PRE;
     if(symbolp($c)){
       if(is_null($d=$this->bound($c)))error('not bound: '.tostring($c));
       return $d;}
@@ -311,7 +311,7 @@ class _CompilationUnit {
       compiler_noise("compiling (var ".tostring($y).")");
       $r = cddr($c) ? $this->compile_expr(caddr($c)) : 'null';
       $x='$DYNAMIC_VARS["'.addslashes(id($y)).'"]='.$r.";\n";
-      eval_helper($x);return const_data($y);}
+      eval_helper($COMPILER_PRE.$x);return const_data($y);}
     elseif(is_null($f=$this->fbound($a))){error('not fbound: '.tostring($a));}
     return $f.$g.'('.implode(',',$this->compile_args(cdr($c))).')';
   }
