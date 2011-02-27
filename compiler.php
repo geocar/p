@@ -223,8 +223,7 @@ class _CompilationUnit {
     elseif($a===$BACKQUOTE){return $this->backquote(cadr($c));}
     elseif($a===$FUNCTION){
       if(!is_null($y=$this->fbound($a=cadr($c))))return $y;
-      if(consp($a) && car($a)===$PHP){$f=cadr($a);if(!symbolp($f)){error('not php');}
-        return $this->lambda_fun($f->name);}
+      if(consp($a) && car($a)===$PHP)return $this->compile_expr($a);
       if($a===$CAR)return $this->lambda_fun('car');
       if($a===$CDR)return $this->lambda_fun('cdr');
       if($a===$APPLY)return $this->lambda_fun('APPLY');
