@@ -50,3 +50,4 @@
 (defun char-code (s)
   ((php unpack) "N" ((php mb_convert_encoding) s "UCS-4BE" "UTF-8")))
 (setf #'quit #'(php exit))
+(setf #'load #'(php lisp_load))
