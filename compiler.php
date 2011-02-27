@@ -1,6 +1,13 @@
 <?php // compiler
 $COMPILER_FH=null;
+$COMPILER_VERBOSE=false;
 $COMPILER_PRE='global $LISP_T,$LISP_NIL,$DYNAMIC_VARS,$DYNAMIC_FUNS,$GLOBAL_MACROS,$NULL_ITERATOR;';
+function compiler_noise($s1) {
+  global $COMPILER_VERBOSE;
+  if($COMPILER_VERBOSE) {
+    echo ";; ",$s1,"\n";
+  }
+}
 function const_data($k) {
   global $LISP_T,$LISP_NIL;
 
@@ -24,12 +31,15 @@ function eval_helper($r){
   }
   return $g;
 }
-function compile_file($in,$out=null) {
-  global $COMPILER_FH,$COMPILER_PRE;
+function compile_file($in,$out=null,$verbose=false) {
+  global $COMPILER_FH,$COMPILER_PRE,$COMPILER_VERBOSE;
   if(is_null($out)){
     $out=substr($in, 0, strrpos($in, '.')).'.fasl'; 
   }
+  $oldv=$COMPILER_VERBOSE;
   $tmp=$COMPILER_FH;
+  $COMPILER_VERBOSE=$verbose;
+  compiler_noise("reading \"$in\"");
   $COMPILER_FH=fopen("$out.tmp",'w');
   fputs($COMPILER_FH,'<');
   fputs($COMPILER_FH,'?');
@@ -40,6 +50,9 @@ function compile_file($in,$out=null) {
   fputs($COMPILER_FH,");\n");
   fclose($COMPILER_FH);
   $COMPILER_FH=$tmp;
+  compiler_noise("creating \"$out\"");
+  $COMPILER_FH=fopen("$out.tmp",'w');
+  $COMPILER_VERBOSE=$oldv;
   rename("$out.tmp","$out");
   return $r;
 }
@@ -272,6 +285,7 @@ class _CompilationUnit {
     elseif($a===$EQ){return implode('===',$this->compile_args(cdr($c)));}
     elseif($a===$FUNCALL){$f=$this->compile_expr(cadr($c));$c=cdr($c);}
     elseif($a===$DEFMACRO){$y=cadr($c);
+      compiler_noise("compiling (macro ".tostring($y).")");
       $f = $this->compile_lambda($y, caddr($c),cdddr($c));
       $d=id($y); unset($DYNAMIC_FUNS[$d]);
       $GLOBAL_MACROS[$d] = new $f(null);
@@ -282,6 +296,7 @@ class _CompilationUnit {
       }
       return const_data($y);}
     elseif($a===$DEFUN){$y=cadr($c);
+      compiler_noise("compiling (function ".tostring($y).")");
       $d=id($y); unset($GLOBAL_MACROS[$d]);
       $DYNAMIC_FUNS[$d] = true;
       $f = $this->compile_lambda($y, caddr($c),cdddr($c));
@@ -294,6 +309,7 @@ class _CompilationUnit {
       }
       return const_data($y);}
     elseif($a===$DEFVAR){$y=cadr($c);
+      compiler_noise("compiling (var ".tostring($y).")");
       $r = cddr($c) ? $this->compile_expr(caddr($c)) : 'null';
       $x='$DYNAMIC_VARS["'.addslashes(id($y)).'"]='.$r.";\n";
       eval_helper($x);return const_data($y);}
