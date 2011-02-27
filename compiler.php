@@ -1,0 +1,348 @@
+<?php // compiler
+$COMPILER_FH=null;
+$COMPILER_PRE='global $LISP_T,$LISP_NIL,$DYNAMIC_VARS,$DYNAMIC_FUNS,$DYNAMIC_MACS;';
+function const_data($k) {
+  global $LISP_T,$LISP_NIL;
+
+  if(is_null($k))return 'null';
+  if($k===$LISP_T)return '$LISP_T';
+  if(symbolp($k)){return '_Symbol::find_symbol("'.addslashes($k->name).'",'.$k->id.')';}
+  if(is_numeric($k)) return $k;
+  if(is_string($k))return '"'.addslashes($k).'"';
+  if(consp($k)){return 'cons('.const_data($k->car).','.const_data($k->cdr).')';}
+  if(is_array($k)){
+    $o=array(); foreach($k as $x){$o[]=const_data($x);}
+    return 'array('.implode(',',$o).')';}
+  return 'unserialize("'.addslashes(serialize($k)).'")';
+}
+function eval_helper($r){
+  global $COMPILER_FH;
+  if(!is_null($COMPILER_FH))fputs($COMPILER_FH,$r);
+  return eval($r);
+}
+function compile_file($in,$out=null) {
+  global $COMPILER_FH,$COMPILER_PRE;
+  if(is_null($out)){
+    $out=substr($in, 0, strrpos($in, '.')).'.fasl'; 
+  }
+  $tmp=$COMPILER_FH;
+  $COMPILER_FH=fopen("$out.tmp",'w');
+  fputs($COMPILER_FH,'<');
+  fputs($COMPILER_FH,'?');
+  fputs($COMPILER_FH,"php include_once(\"rt.php\");\n");
+  $r = lisp_load($in);
+  fputs($COMPILER_FH,"\nPROGN(");
+  fputs($COMPILER_FH,const_data($r));
+  fputs($COMPILER_FH,");\n");
+  fclose($COMPILER_FH);
+  $COMPILER_FH=$tmp;
+  rename("$out.tmp","$out");
+  return $r;
+}
+class _CompilationUnit {
+  static public $n=1234;
+  static public $LAMBDA_OP=array();
+  public function lambda_op($name,$f){//wraps php operator as lambda
+    if(isset(_CompilationUnit::$LAMBDA_OP[$f])){ return _CompilationUnit::$LAMBDA_OP[$f]; }
+    $o=array();
+
+    $s = $this->genid();
+
+    $o[] = "class $s { ";
+    $o[] = 'public function docstring() { return "';
+    $o[] = $name;
+    $o[] = ' operator"; }';
+    $o[] = 'public function prototype() { global $ARGS;return $ARGS; } ';
+    $o[] = 'public function __toString(){return "#<operator ';
+    $o[] = $name;
+    $o[] = '>"; } public function __construct($ignored=null) { }';
+    $o[] = 'public function __invoke($d=0) { $n=func_num_args();';
+    $o[] = 'for($i=1;$i<$n;++$i){$c=func_get_arg($i);$d = $d ';
+    $o[] = $f;
+    $o[] = ' $c;} return $d;} }';
+    $o[] = ";\n";
+    eval_helper(implode('',$o));
+    return _CompilationUnit::$LAMBDA_OP[$f] = "new $s()";
+  }
+
+  public function __construct($p) {
+    $this->vars = array();
+    $this->funs = array();
+    $this->parent = $p;
+    $this->n=1;
+    $this->id=_CompilationUnit::$n;
+    _CompilationUnit::$n++;
+  }
+
+  public function backquote($c,$d=0) {
+    global $BACKQUOTE,$UNQUOTE,$UNQUOTE_SPLICING;
+    if($d==-1)return $this->compile_expr($c);
+    if(!consp($c))return const_data($c);
+    if(($a=car($c))===$BACKQUOTE)return $this->backquote(cadr($c),$d+1);
+    if($a===$UNQUOTE)return $this->backquote(cadr($c),$d-1);
+    if(consp($a)&&car($a)===$UNQUOTE_SPLICING){
+      return 'APPEND(' . $this->backquote(cadr($a),$d-1) . ',' . $this->backquote(cdr($c),$d).')';
+    }
+    return 'cons('.$this->backquote($a,$d).','.$this->backquote(cdr($c),$d).')';
+  }
+
+  public function flet($var) {
+    global $DYNAMIC_FUNS;
+    $y=id($var);
+    if(isset($DYNAMIC_FUNS[$y])) {
+      return '$DYNAMIC_FUNS["' . $y . '"]';
+    }
+    $s = 'F' . count($this->funs);
+    $this->funs[] = $var;
+    return $s;
+  }
+  public function fbound($s) {
+    global $DYNAMIC_FUNS;
+    $y=id($s);
+    if(isset($DYNAMIC_FUNS[$y])) { return '$DYNAMIC_FUNS["' . $y . '"]';}
+    for($i = count($this->funs)-1; $i >= 0; --$i)
+      if($this->funs[$i] === $s) return '$this->F'.$i;
+    $z = '$this->p'; $p = $this->parent;
+    while($p) {
+      for($i = count($p->funs)-1; $i >= 0; --$i)
+        if($p->funs[$i] === $s) return $z.'->F'.$i;
+      $p = $p->parent;
+      $z .= '->p';
+    }
+    return null;
+  }
+  public function let($var) {
+    global $DYNAMIC_VARS,$LISP_T,$LISP_NIL;
+    if($var===$LISP_T||$var===$LISP_NIL)error('no');
+    if(!is_null($var)){
+      $y=id($var);
+      if(isset($DYNAMIC_VARS[$y])) { return '$DYNAMIC_VARS["' . $y . '"]';}
+    }
+    $s = 'V' . count($this->vars);
+    $this->vars[] = $var;
+    return $s;
+  }
+  public function bound($s) {
+    global $DYNAMIC_VARS,$LISP_T,$LISP_NIL;
+    if($s===$LISP_T){return '$LISP_T';} if($s===$LISP_NIL){return 'null';}
+    if(substr($s,0,1)==':'){return const_data($s);} // keywordp
+
+    $y=id($s);
+    if(isset($DYNAMIC_VARS[$y])) { return '$DYNAMIC_VARS["' . $y . '"]';}
+    for($i = count($this->vars)-1; $i >= 0; --$i)
+      if($this->vars[$i] === $s) return '$this->V'.$i;
+    $z = '$this->p'; $p = $this->parent;
+    while($p) {
+      for($i = count($p->vars)-1; $i >= 0; --$i)
+        if($p->vars[$i] === $s) return $z.'->V'.$i;
+      $p = $p->parent;
+      $z .= '->p';
+    }
+    return null;
+  }
+
+  public function compile_args($y) {
+    $o=array();
+    for(;$y;$y=cdr($y)){$o[]=$this->compile_expr(car($y));}
+    return $o;
+  }
+  public function _compile_vlet($f,$v,$e,$y,$b) {
+    $o=array();
+    for(;$y;$y=cdr($y)){
+      if(symbolp($a=car($y)))$this->$f($a);
+      elseif(!consp($a))error('no '.$f);//no let, no flet
+      else{$j=$this->$f(car($a));$k=$this->$e(cadr($a),caddr($a));$o[]="($j=($k))";}}
+    for(;$b;$b=cdr($b)){
+      $o[]=$this->compile_expr(car($b));
+    }
+    return 'PROGN(_V1($DYNAMIC_'.$v.',$DYNAMIC_'.$v.',$DYNAMIC_'.$v.'=_V2($DYNAMIC_'.$v.'),PROGN('.implode(',',$o).')))';
+  }
+  public function compile_let($y,$b){return $this->_compile_vlet('let','VARS','compile_expr',$y,$b);}
+  public function compile_flet($y,$b){return $this->_compile_vlet('flet','FUNS','compile_fun',$y,$b);}
+  public function compile_fun($c,$d) { return '(new '.$this->compile_lambda(null, $c,$d).'($this))'; }
+  public function compile_expr($c) {
+    global $LAMBDA, $FUNCTION, $CAR, $CDR;
+    global $LET, $FLET, $FUNCALL, $SETF, $PROGN,$PROG1,$MAPCAR,$APPLY,$APPEND;
+    global $PLUS,$MINUS,$TIMES,$DIVIDE,$MOD;
+    global $LT,$GT,$LTE,$GTE,$EQL,$NE,$EQ;
+    global $DEFUN,$DEFVAR,$DEFMACRO;
+    global $DYNAMIC_FUNS,$DYNAMIC_VARS,$DYNAMIC_MACS;
+    global $QUOTE,$PHP,$IF,$BACKQUOTE;
+    global $LISP_T,$LISP_NIL;
+    global $COMPILER_FH;
+    if(symbolp($c)){
+      if(is_null($d=$this->bound($c)))error('not bound');
+      return $d;}
+    if(!consp($c)) return const_data($c);
+    $g='->__invoke';
+    if(!symbolp($a=car($c))){
+      if(!consp($a)||!symbolp($d=car($a)))error('not fun');
+      if($PHP===$d){$f=cadr($a);$g='';if(!symbolp($f)){error('not php');} $f=$f->name;}//fall thru (no invoke)
+      elseif($LAMBDA===$d||$FUNCTION===$d){$f=$this->compile_expr($a);}//fall thru
+      else error('not fun');}
+    elseif($a===$LAMBDA){return $this->compile_fun(cdr($c));}
+    elseif($a===$QUOTE){return const_data(cadr($c));}
+    elseif($a===$PHP){error('not php ok');}
+    elseif($a===$BACKQUOTE){return $this->backquote(cadr($c));}
+    elseif($a===$FUNCTION){
+      if(!is_null($y=$this->fbound($a=cadr($c))))return $y;
+      if($a===$PLUS)return $this->lambda_op('plus','+');
+      if($a===$MINUS)return $this->lambda_op('minus','-');
+      if($a===$TIMES)return $this->lambda_op('times','*');
+      if($a===$DIVIDE)return $this->lambda_op('divide','/');
+      if($a===$MOD)return $this->lambda_op('mod','%');
+      if($a===$LT)return $this->lambda_op('lt','<');
+      if($a===$LTE)return $this->lambda_op('lte','<=');
+      if($a===$GT)return $this->lambda_op('gt','>');
+      if($a===$GTE)return $this->lambda_op('gte','>=');
+      if($a===$EQL)return $this->lambda_op('eql','==');
+      if($a===$NE)return $this->lambda_op('ne','!=');
+      if($a===$EQ)return $this->lambda_op('eq','===');
+      error('not fbound');}
+    elseif($a===$LET){ return $this->compile_let(cadr($c),cddr($c)); }
+    elseif($a===$FLET){ return $this->compile_flet(cadr($c),cddr($c)); }
+    elseif($a===$IF){
+      $o=array();
+      $d=true;
+      $k=array();
+      for($c=cdr($c);$c;$c=cdr($c)){
+        $o[] = '(' . $this->compile_expr(car($c));
+	if($d)$k[] = ')'; $o[] = $d ? '?' : '):'; $d=!$d; }
+      if(count($o)==0)return 'null';
+      array_pop($o); if($d)$o[] = "):null"; return implode('',$o).implode('',$k);}
+    elseif($a===$PROGN){$f='PROGN';$g='';}
+    elseif($a===$PROG1){$f='PROG1';$g='';}
+    elseif($a===$MAPCAR){$f='MAPCAR';$g='';}
+    elseif($a===$APPEND){$f='APPEND';$g='';}
+    elseif($a===$APPLY){$f='APPLY';$g='';}
+    elseif($a===$CAR){$f='car';$g='';}
+    elseif($a===$CDR){$f='cdr';$g='';}
+    elseif($a===$SETF){$y=cadr($c);
+      if($y===$LISP_T||$y===$LISP_NIL)error('no');
+      if(consp($y)){ $d=car($y);$a=cadr($y);
+	      //xxx
+        if($d===$CAR||$d===$CDR)$y=$this->compile_expr($a).'->'.$d->name;
+        else error('not setf');}
+      elseif(!symbolp($y))error('not symbol');
+      elseif(is_null($y=$this->bound($y)))error('not bound');
+      return $y.'='.$this->compile_expr(caddr($c));}
+    elseif($a===$PLUS){return implode('+',$this->compile_args(cdr($c)));}
+    elseif($a===$MINUS){return implode('-',$this->compile_args(cdr($c)));}
+    elseif($a===$TIMES){return implode('*',$this->compile_args(cdr($c)));}
+    elseif($a===$DIVIDE){return implode('/',$this->compile_args(cdr($c)));}
+    elseif($a===$MOD){return implode('%',$this->compile_args(cdr($c)));}
+    elseif($a===$LT){return implode('<',$this->compile_args(cdr($c)));}
+    elseif($a===$LTE){return implode('<=',$this->compile_args(cdr($c)));}
+    elseif($a===$GT){return implode('>',$this->compile_args(cdr($c)));}
+    elseif($a===$GTE){return implode('>=',$this->compile_args(cdr($c)));}
+    elseif($a===$EQL){return implode('==',$this->compile_args(cdr($c)));}
+    elseif($a===$NE){return implode('!=',$this->compile_args(cdr($c)));}
+    elseif($a===$EQ){return implode('===',$this->compile_args(cdr($c)));}
+    elseif($a===$FUNCALL){$f=$this->compile_expr(cadr($c));$c=cdr($c);}
+    elseif($a===$DEFMACRO){$y=cadr($c);
+      $f = $this->compile_lambda($y, caddr($c),cdddr($c));
+      $d=id($y); unset($DYNAMIC_FUNS[$d]);
+      $DYNAMIC_MACS[$d] = new $f(null);
+      if(!is_null($COMPILER_FH)) {
+        $y=addslashes($d);
+        fputs($COMPILER_FH,'unset($DYNAMIC_FUNS["'.$y.'"]);'."\n");
+        fputs($COMPILER_FH,'$DYNAMIC_MACS["'.$y.'"]=new '.$f."(null);\n");
+      }
+      return const_data($y);}
+    elseif($a===$DEFUN){$y=cadr($c);
+      $f = $this->compile_lambda($y, caddr($c),cdddr($c));
+      $d=id($y); unset($DYNAMIC_MACS[$d]);
+      $DYNAMIC_FUNS[$d] = new $f(null);
+      if(!is_null($COMPILER_FH)) {
+        $y=addslashes($d);
+        fputs($COMPILER_FH,'unset($DYNAMIC_MACS["'.$y.'"]);'."\n");
+        fputs($COMPILER_FH,'$DYNAMIC_FUNS["'.$y.'"]=new '.$f."(null);\n");
+      }
+      return const_data($y);}
+    elseif($a===$DEFVAR){$y=cadr($c);
+      $r = cddr($c) ? $this->compile_expr(caddr($c)) : 'null';
+      $x='$DYNAMIC_VARS["'.addslashes(id($y)).'"]='.$r.";\n";
+      eval_helper($x);return const_data($y);}
+    elseif(is_null($f=$this->fbound($a))){error('not fbound');}
+    return $f.$g.'('.implode(',',$this->compile_args(cdr($c))).')';
+  }
+  public function genid() {
+    $s = '_CompiledLambda_'.$this->id.'_'.$this->n.'_'.mt_rand().'_'.time();
+    $this->n++;
+    return $s;
+  }
+  public function compile_lambda($name,$a, $c) {
+    $o = array();
+    $s = $this->genid();
+
+    $o[] = "class $s { public function docstring() { return ";
+    if(is_string(car($c)) && cdr($c)){
+      $o[] = '"' . addslashes(car($c)) . '"';
+      $c = cdr($c);
+    } else {
+      $o[] = 'null';
+    }
+
+    $o[] = '; } function prototype() { return ' . const_data($a) . '; }';
+
+    $o[] = 'function __toString(){return "#<';
+    if(is_null($name)){
+      $o[] = 'closure';
+    }else{
+      $o[] = 'function ';
+      $o[] = symbolp($name)?$name->name:$name;
+    }
+    $o[] = '>";} function __construct($p){$this->p=$p;} function __invoke(';
+    $comma='';
+
+    $g=new _CompilationUnit($this);
+    for($x = $a; $x; $x = cdr($x)) {
+      $y=consp($x)?car($x):$x;
+      $o[] = $comma . '$' . $g->let($y);
+      $comma=',';
+    }
+    $o[] = ') { global $DYNAMIC_FUNS,$DYNAMIC_VARS,$LISP_T,$LISP_NIL;';
+    for($i = 0, $x = $a; $x; ++$i, $x = cdr($x)) {
+      if(consp($x)){
+        $o[] = '$this->'.$g->let(car($x)).'=func_get_arg('.$i.');';
+      }else{
+        $y='$this->'.$g->let($x);
+        $o[] = $y;
+	$o[] = '=null;';
+        $o[] = 'for($i=func_num_args()-1;$i>=';
+        $o[] = $i;
+        $o[] = ';--$i){';
+        $o[] = $y;
+	$o[] = '=cons(func_get_arg($i),';
+        $o[] = $y;
+	$o[] = '); }';
+        break;
+      }
+    }
+    for($d = null; $c; $c = $d) {
+      $d = cdr($c);
+      if(!$d) {
+        $o[] = 'return ';
+      }
+      $o[] = $g->compile_expr(car($c));
+      $o[] = ';';
+    }
+    $o[] = "} };\n";
+    eval_helper(implode('', $o));
+    return $s;
+  }
+}
+function lisp_eval($c){
+  if(is_null($c)||is_string($c)||is_numeric($c)||closurep($c))return $c;
+  global $PARSE_SAFE; if($PARSE_SAFE > 0)error('unsafe');
+  global $COMPILER_FH,$COMPILER_PRE;
+  $x=new _CompilationUnit(null);
+  $r=$x->compile_expr(macroexpand($c));
+  return eval($COMPILER_PRE.'$r='.$r.';return $r;');
+}
+function lisp_print($s) {
+  if(is_null($s)){echo "nil\n";}
+  elseif(is_array($s)){echo'[';$c='';foreach($s as $x){echo $c,$x;$c=' ';}echo "]\n";}
+  else{echo $s;echo "\n";}
+}
+
