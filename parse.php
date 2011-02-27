@@ -125,7 +125,7 @@ function _parse1($h) {
   if(is_numeric($c)){return $c;}
   return intern($c);}
 
-function lisp_load($s) {
+function lisp_load($s,$tracep=false) {
   global $TOKEN_EOF;
   global $UNINTERNED_CACHE_LOADER;
   if(($fh=fopen($s,"r"))===false)return null;
@@ -136,6 +136,7 @@ function lisp_load($s) {
     $c=parse($fh);
     if($c===$TOKEN_EOF) break;
     $r=lisp_eval($c);
+    if($tracep)echo tostring($r),"\n";
   }
   fclose($fh);
   $UNINTERNED_CACHE_LOADER=$tmp;
