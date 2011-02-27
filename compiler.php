@@ -216,7 +216,7 @@ class _CompilationUnit {
       if($PHP===$d){$f=cadr($a);$g='';if(!symbolp($f)){error('not php');} $f=$f->name;}//fall thru (no invoke)
       elseif($LAMBDA===$d||$FUNCTION===$d){$f=$this->compile_expr($a);}//fall thru
       else error('not fun');}
-    elseif($a===$LAMBDA){return $this->compile_fun(cdr($c));}
+    elseif($a===$LAMBDA){$a=cdr($c);return $this->compile_fun(car($a),cdr($a));}
     elseif($a===$QUOTE){return const_data(cadr($c));}
     elseif($a===$PHP){$f=cadr($c);if(!symbolp($f)){error('not php');}
       return $this->lambda_fun($f->name);}
