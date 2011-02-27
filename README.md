@@ -1,10 +1,11 @@
-this is a lisp in php
+# ;; a lisp in php
 
-features:
+## features
 
 * a real compiler
 * closures. even in php 5.2
 * lisp data structures
 
+## quickstart
 
-quickstart: make repl
+    make repl
