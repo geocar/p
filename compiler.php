@@ -161,7 +161,7 @@ class _CompilationUnit {
     global $DYNAMIC_VARS,$LISP_T,$LISP_NIL;
     if($s===$LISP_T){return '$LISP_T';}
     if($s===$LISP_NIL){return 'null';}
-    if(substr($s,0,1)==':'){return const_data($s);} // keywordp
+    if($s->name{0}==':'){return const_data($s);} // keywordp
 
     $y=id($s);
     if(isset($DYNAMIC_VARS[$y])) { return '$DYNAMIC_VARS["' . $y . '"]';}

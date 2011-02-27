@@ -8,7 +8,7 @@ class _StringCharStream extends _AbstractCharStream {
   public $i,$s,$n;
   public function get() {
     if($this->i >= $this->n){return null;}
-    $c=substr($this->s,$this->i,1);$this->i++;return $c; }
+    $c=$this->s{$this->i};$this->i++;return $c; }
   public function unget() { $this->i--; }
   public function __construct($s){ $this->s=$s;$this->n=strlen($s);$this->i=0; } }
 class _FileCharStream extends _AbstractCharStream {

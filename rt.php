@@ -100,7 +100,7 @@ function cddr(&$x){return cdr(cdr($x));}
 function caddr(&$x){return car(cdr(cdr($x)));}
 function cdddr(&$x){return cdr(cdr(cdr($x)));}
 function symbolp(&$x){return @get_class($x)=='_Symbol';}
-function keywordp(&$x){return symbolp($x)&&substr($x->name,0,1)==':';}
+function keywordp(&$x){return symbolp($x)&&$x->name{0}==':';}
 function array2cons($a){ $d=null;for($i=count($a)-1;$i>=0;--$i){$d=cons($a[$i],$d);}return $d;}
 function length($x) {
   if(is_null($x))return 0;
