@@ -64,7 +64,7 @@ class _CompilationUnit {
 
     $s = $this->genid();
 
-    $o[] = "class $s { ";
+    $o[] = "function $s(){ return new $s(); }; class $s { ";
     $o[] = 'public function docstring() { return "';
     $o[] = $name;
     $o[] = ' operator"; }';
@@ -78,7 +78,7 @@ class _CompilationUnit {
     $o[] = ' $c;} return $d;} }';
     $o[] = ";\n";
     eval_helper(implode('',$o));
-    return _CompilationUnit::$LAMBDA_OP[$f] = "new $s()";
+    return _CompilationUnit::$LAMBDA_OP[$f] = "$s()";
   }
   public function lambda_fun($name){//wraps php function as lambda
     if(isset(_CompilationUnit::$LAMBDA_OP[$name])){ return _CompilationUnit::$LAMBDA_OP[$name]; }
@@ -86,7 +86,7 @@ class _CompilationUnit {
 
     $s = $this->genid();
 
-    $o[] = "class $s { ";
+    $o[] = "function $s(){return new $s();}; class $s { ";
     $o[] = 'public function docstring() { return "';
     $o[] = $name;
     $o[] = ' primitive"; }';
@@ -97,7 +97,7 @@ class _CompilationUnit {
     $o[] = 'public function __invoke() { return call_user_func_array(';
     $o[] = "'$name',func_get_args()); } };\n";
     eval_helper(implode('',$o));
-    return _CompilationUnit::$LAMBDA_OP[$name] = "new $s()";
+    return _CompilationUnit::$LAMBDA_OP[$name] = "$s()";
   }
 
   public function __construct($p) {
@@ -195,7 +195,7 @@ class _CompilationUnit {
   }
   public function compile_let($y,$b){return $this->_compile_vlet('let','VARS','compile_expr',$y,$b);}
   public function compile_flet($y,$b){return $this->_compile_vlet('flet','FUNS','compile_fun',$y,$b);}
-  public function compile_fun($c,$d) { return '(new '.$this->compile_lambda(null, $c,$d).'($this))'; }
+  public function compile_fun($c,$d) { return $this->compile_lambda(null, $c,$d).'($this)'; }
 
 
   function getf($y){
@@ -336,7 +336,7 @@ class _CompilationUnit {
     $o = array();
     $s = $this->genid();
 
-    $o[] = "class $s { public function docstring() { return ";
+    $o[] = "function $s(\$p){return new $s(\$p);}; class $s { public function docstring() { return ";
     if(is_string(car($c)) && cdr($c)){
       $o[] = '"' . addslashes(car($c)) . '"';
       $c = cdr($c);
