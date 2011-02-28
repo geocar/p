@@ -48,23 +48,27 @@ function _getc($h){
     if(!is_string($c)||$c!=';')return $c;
     do{$c=$h->get();}while(is_string($c) && $c !="\n");}}//comments
 function _parseA($h) {
-  global $TOKEN_CBRACKET;
+  global $TOKEN_CBRACKET,$TOKEN_EOF;
   $a=array();
   for(;;){
     $c=_parse1($h);
     if($c===$TOKEN_CBRACKET)return $a;
-    if(is_null($c))error('unterminated array');
+    if($c===$TOKEN_EOF)error('unterminated array');
     $a[]=$c; }}
 function _parseL($h,$t) {
-  global $TOKEN_DOT;
+  global $TOKEN_DOT,$TOKEN_EOF;
   $c=_parse1($h);
   if($c===$t)return null;
+  if($c===$TOKEN_EOF)error('unbalanced paren');
   $g=$a=cons($c,null);
   while(true){
     $c=_parse1($h);
+    if($c===$TOKEN_EOF)error('unbalanced paren');
     if($c===$TOKEN_DOT){
       $d=_parse1($h);
       $c=_parse1($h);
+      if($d===$TOKEN_EOF)error('unbalanced paren');
+      if($c===$TOKEN_EOF)error('unbalanced paren');
       if($c!==$t)error('syntax error');
       $a->cdr=$d;break;}
     if($c===$t){break;}
