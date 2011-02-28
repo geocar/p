@@ -183,3 +183,4 @@ function AREF_GET($a,$b){
   if(is_array($a))return $a[$b];
   error("type");
 }
+function quit($x=0){exit($x);}
