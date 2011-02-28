@@ -184,3 +184,8 @@ function AREF_GET($a,$b){
   error("type");
 }
 function quit($x=0){exit($x);}
+function lisp_null($x){global $LISP_T;return $x?null:$LISP_T;}
+function lisp_consp($x){global $LISP_T;return consp($x)?$LISP_T:null;}
+function lisp_arrayp($x){global $LISP_T;return is_array($x)?$LISP_T:null;}
+function lisp_stringp($x){global $LISP_T;return is_string($x)?$LISP_T:null;}
+function lisp_symbolp($x){global $LISP_T;return symbolp($x)?$LISP_T:null;}

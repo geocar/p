@@ -269,7 +269,10 @@ class _CompilationUnit {
       $d=true;
       $k=array();
       for($c=cdr($c);$c;$c=cdr($c)){
-        $o[] = '(' . $this->compile_expr(car($c));
+        $o[] = '(';
+        if($d&&$c->cdr)$o[]='!is_null(';
+	$o[] = $this->compile_expr(car($c));
+        if($d&&$c->cdr)$o[]=')';
 	if($d)$k[] = ')'; $o[] = $d ? '?' : '):'; $d=!$d; }
       if(count($o)==0)return 'null';
       array_pop($o); if($d)$o[] = "):null"; return implode('',$o).implode('',$k);}
