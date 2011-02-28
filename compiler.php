@@ -232,10 +232,9 @@ class _CompilationUnit {
     if(!consp($c)) return const_data($c);
     $g='->__invoke';
     if(!symbolp($a=car($c))){
-      if(!consp($a)||!symbolp($d=car($a)))error('not fun');
-      if($PHP===$d){$f=cadr($a);$g='';if(!symbolp($f)){error('not php');} $f=$f->name;}//fall thru (no invoke)
-      elseif($LAMBDA===$d||$FUNCTION===$d){$f=$this->compile_expr($a);}//fall thru
-      else error('not fun');}
+      if(!consp($a)||!symbolp($d=car($a)))error('not fun: '.tostring($a));
+      if($LAMBDA===$d||$FUNCTION===$d){$f=$this->compile_expr($a);}//fall thru
+      else error('not fun: '.tostring($a));}
     elseif($a===$LAMBDA){$a=cdr($c);return $this->compile_fun(car($a),cdr($a));}
     elseif($a===$QUOTE){return const_data(cadr($c));}
     elseif($a===$PHP){$f=cadr($c);if(!symbolp($f)){error('not php');}
@@ -294,7 +293,13 @@ class _CompilationUnit {
     elseif($a===$EQL){return implode('==',$this->compile_args(cdr($c)));}
     elseif($a===$NE){return implode('!=',$this->compile_args(cdr($c)));}
     elseif($a===$EQ){return implode('===',$this->compile_args(cdr($c)));}
-    elseif($a===$FUNCALL){$f=$this->compile_expr(cadr($c));$c=cdr($c);}
+    elseif($a===$FUNCALL){
+      $a=cadr($c);
+      if(consp($a) && car($a)===$PHP) {
+        $f=cadr($a);$g='';if(!symbolp($f)){error('not php');}
+	$f=$f->name; }
+      else { $f=$this->compile_expr($a);}
+      $c=cdr($c);}
     elseif($a===$DEFMACRO){$y=cadr($c);
       compiler_noise("compiling (macro ".tostring($y).")");
       $f = $this->compile_lambda($y, caddr($c),cdddr($c));
