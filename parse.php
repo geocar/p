@@ -48,11 +48,12 @@ function _getc($h){
     if(!is_string($c)||$c!=';')return $c;
     do{$c=$h->get();}while(is_string($c) && $c !="\n");}}//comments
 function _parseA($h) {
-  global $TOKEN_CBRACKET,$TOKEN_EOF;
+  global $TOKEN_DOT,$TOKEN_CBRACKET,$TOKEN_EOF;
   $a=array();
   for(;;){
     $c=_parse1($h);
     if($c===$TOKEN_CBRACKET)return $a;
+    if($c===$TOKEN_DOT)error('syntax error');
     if($c===$TOKEN_EOF)error('unterminated array');
     $a[]=$c; }}
 function _parseL($h,$t) {
