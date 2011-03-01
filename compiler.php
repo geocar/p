@@ -58,6 +58,10 @@ function compile_file($in,$out=null,$verbose=false) {
 class _CompilationUnit {
   static public $n=1234;
   static public $LAMBDA_OP=array();
+
+  public $lex = '$this';
+  public $lexA = '$this->';
+
   public function lambda_op($name,$f){//wraps php operator as lambda
     if(isset(_CompilationUnit::$LAMBDA_OP[$f])){ return _CompilationUnit::$LAMBDA_OP[$f]; }
     $o=array();
@@ -136,8 +140,8 @@ class _CompilationUnit {
     $y=id($s);
     if(isset($DYNAMIC_FUNS[$y])) { return '$DYNAMIC_FUNS["' . $y . '"]';}
     for($i = count($this->funs)-1; $i >= 0; --$i)
-      if($this->funs[$i] === $s) return '$this->F'.$i;
-    $z = '$this->p'; $p = $this->parent;
+      if($this->funs[$i] === $s) return $this->lexA.'F'.$i;
+    $z = $this->lexA.'p'; $p = $this->parent;
     while($p) {
       for($i = count($p->funs)-1; $i >= 0; --$i)
         if($p->funs[$i] === $s) return $z.'->F'.$i;
@@ -166,8 +170,8 @@ class _CompilationUnit {
     $y=id($s);
     if(isset($DYNAMIC_VARS[$y])) { return '$DYNAMIC_VARS["' . $y . '"]';}
     for($i = count($this->vars)-1; $i >= 0; --$i)
-      if($this->vars[$i] === $s) return '$this->V'.$i;
-    $z = '$this->p'; $p = $this->parent;
+      if($this->vars[$i] === $s) return $this->lexA.'V'.$i;
+    $z = $this->lexA.'p'; $p = $this->parent;
     while($p) {
       for($i = count($p->vars)-1; $i >= 0; --$i)
         if($p->vars[$i] === $s) return $z.'->V'.$i;
@@ -187,7 +191,7 @@ class _CompilationUnit {
     for(;$y;$y=cdr($y)){
       if(symbolp($a=car($y)))$this->$f($a);
       elseif(!consp($a))error('no '.$f);//no let, no flet
-      else{$j=$this->$f(car($a));$k=$this->$e(cadr($a),caddr($a));$o[]="(\$$j=($k))";}}
+      else{$j=$this->$f(car($a));$k=$this->$e(cadr($a),caddr($a));$o[]="(".$this->lexA."$j=($k))";}}
     for(;$b;$b=cdr($b)){
       $o[]=$this->compile_expr(car($b));
     }
@@ -195,7 +199,7 @@ class _CompilationUnit {
   }
   public function compile_let($y,$b){return $this->_compile_vlet('let','VARS','compile_expr',$y,$b);}
   public function compile_flet($y,$b){return $this->_compile_vlet('flet','FUNS','compile_fun',$y,$b);}
-  public function compile_fun($c,$d) { return $this->compile_lambda(null, $c,$d).'($this)'; }
+  public function compile_fun($c,$d) { return $this->compile_lambda(null, $c,$d).'('.$this->lex.')'; }
 
 
   function getf($y){
@@ -343,7 +347,7 @@ class _CompilationUnit {
   public function destructure($form,$k,&$v) {
     if(!consp($form)) {
       if(!symbolp($form))error("cant destructure $form");
-      return '$this->'.$this->let($form)."=$k;";
+      return $this->lexA.$this->let($form)."=$k;";
     }
     $o=array();
     $a='$w'.$v;++$v;
@@ -355,7 +359,7 @@ class _CompilationUnit {
 
       if(consp($x)||is_array($x)){$o[]=$this->destructure($x,$y,$v);}
       elseif(!symbolp($x))error("cant destructure $x");
-      else{$o[]='$this->'.$this->let($x)."=$y;";}
+      else{$o[]=$this->lexA.$this->let($x)."=$y;";}
 
       $k="cdr($a)"; }
     return implode("\n",$o);
@@ -401,7 +405,7 @@ class _CompilationUnit {
       if(consp($x)){
         $w=0; $o[] = $g->destructure(car($x),"func_get_arg($i)",$w);
       }else{
-        $y='$this->'.$g->let($x);
+        $y=$g->lexA.$g->let($x);
         $o[] = $y;
 	$o[] = '=null;';
         $o[] = 'for($i=func_num_args()-1;$i>=';
@@ -432,6 +436,7 @@ function lisp_eval($c){
   global $PARSE_SAFE; if($PARSE_SAFE > 0)error('unsafe');
   global $COMPILER_FH,$COMPILER_PRE;
   $x=new _CompilationUnit(null);
+  $x->lex='null';$x->lexA=''; // pure lexical
   $r=$x->compile_expr(macroexpand($c));
   if(!is_null($COMPILER_FH)) {
     fputs($COMPILER_FH,"$r;\n");
