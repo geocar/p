@@ -340,7 +340,29 @@ class _CompilationUnit {
     $this->n++;
     return $s;
   }
+  public function destructure($form,$k,&$v) {
+    if(!consp($form)) {
+      if(!symbolp($form))error("cant destructure $form");
+      return '$this->'.$this->let($form)."=$k;";
+    }
+    $o=array();
+    $a='$w'.$v;++$v;
+    for(;$form;$form=cdr($form)){
+      $o[]="$a=$k;";
+
+      if(consp($form)){$x=car($form);$y="car($a)";}
+      else{$x=$form;$form=null;$y=$a;}
+
+      if(consp($x)||is_array($x)){$o[]=$this->destructure($x,$y,$v);}
+      elseif(!symbolp($x))error("cant destructure $x");
+      else{$o[]='$this->'.$this->let($x)."=$y;";}
+
+      $k="cdr($a)"; }
+    return implode("\n",$o);
+  }
+
   public function compile_lambda($name,$a, $c) {
+    global $COMPILER_PRE;
     $o = array();
     $s = $this->genid();
 
@@ -365,16 +387,19 @@ class _CompilationUnit {
     $comma='';
 
     $g=new _CompilationUnit($this);
+    $n=0;
     for($x = $a; $x; $x = cdr($x)) {
-      $y=consp($x)?car($x):$x;
-      $o[] = $comma . '$' . $g->let($y);
+      $o[] = $comma . '$var' . $n;
       if(!consp($x)) $o[] = '=null';
       $comma=',';
+      $n++;
     }
-    $o[] = ') { global $DYNAMIC_FUNS,$DYNAMIC_VARS,$LISP_T,$LISP_NIL;';
+    $o[] = ') { ';
+    $o[] = $COMPILER_PRE;
+
     for($i = 0, $x = $a; $x; ++$i, $x = cdr($x)) {
       if(consp($x)){
-        $o[] = '$this->'.$g->let(car($x)).'=func_get_arg('.$i.');';
+        $w=0; $o[] = $g->destructure(car($x),"func_get_arg($i)",$w);
       }else{
         $y='$this->'.$g->let($x);
         $o[] = $y;
