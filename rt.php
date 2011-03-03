@@ -29,7 +29,7 @@ class _Symbol {
     global $UNINTERNED_CACHE_LOADER;
     $this->name=$name;
     if(is_null($id)){
-      $this->id=_Symbol::$n;
+      $id=$this->id=_Symbol::$n;
       _Symbol::$n++;
     } else {
       $this->id=$id;
