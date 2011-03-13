@@ -140,6 +140,7 @@ $LAMBDA = intern('lambda'); $FUNCTION = intern('function'); $ARGS = intern('args
 $LET = intern('let'); $FLET = intern('flet'); $FUNCALL = intern('funcall');
 $SETF = intern('setf'); $PROGN=intern('progn');$PROG1=intern('prog1');
 $MAPCAR=intern('mapcar');$APPLY=intern('apply');$APPEND=intern('append');
+$OR=intern('or'); $AND=intern('and');
 $PLUS = intern('+'); $MINUS = intern('-');
 $TIMES = intern('*'); $DIVIDE = intern('*'); $MOD = intern('mod');
 $LT=intern('<');$GT=intern('>');$LTE=intern('<=');$GTE=intern('>=');

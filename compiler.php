@@ -63,7 +63,8 @@ class _CompilationUnit {
   public $lexA = '$this->';
 
   public function lambda_op($name,$f){//wraps php operator as lambda
-    if(isset(_CompilationUnit::$LAMBDA_OP[$f])){ return _CompilationUnit::$LAMBDA_OP[$f]; }
+    if(isset(_CompilationUnit::$LAMBDA_OP[$f])){
+      return _CompilationUnit::$LAMBDA_OP[$f]; }
     $o=array();
 
     $s = $this->genid();
@@ -76,7 +77,7 @@ class _CompilationUnit {
     $o[] = 'public function __toString(){return "#<operator ';
     $o[] = $name;
     $o[] = '>"; } public function __construct($ignored=null) { }';
-    $o[] = 'public function __invoke($d=0) { $n=func_num_args();';
+    $o[] = 'public function __invoke($d=0) { global $LISP_T; $n=func_num_args();';
     $o[] = 'for($i=1;$i<$n;++$i){$c=func_get_arg($i);$d = $d ';
     $o[] = $f;
     $o[] = ' $c;} return $d;} }';
@@ -181,9 +182,12 @@ class _CompilationUnit {
     return null;
   }
 
-  public function compile_args($y) {
-    $o=array();
-    for(;$y;$y=cdr($y)){$o[]=$this->compile_expr(car($y));}
+  public function compile_args($y,$boolp=false) {
+    $o=array();$a=$b='';
+    if($boolp){$a='(!is_null(';$b='))';}
+    for(;$y;$y=cdr($y)){
+      $o[]=$a.$this->compile_expr(car($y)).$b;
+    }
     return $o;
   }
   public function _compile_vlet($f,$v,$e,$y,$b) {
@@ -223,7 +227,7 @@ class _CompilationUnit {
   public function compile_expr($c) {
     global $LAMBDA, $FUNCTION, $CAR, $CDR;
     global $LET, $FLET, $FUNCALL, $SETF, $PROGN,$PROG1,$MAPCAR,$APPLY,$APPEND;
-    global $PLUS,$MINUS,$TIMES,$DIVIDE,$MOD;
+    global $PLUS,$MINUS,$TIMES,$DIVIDE,$MOD,$OR,$AND;
     global $LT,$GT,$LTE,$GTE,$EQL,$NE,$EQ;
     global $DEFUN,$DEFVAR,$DEFMACRO;
     global $DYNAMIC_FUNS,$DYNAMIC_VARS,$GLOBAL_MACROS;
@@ -288,6 +292,10 @@ class _CompilationUnit {
     elseif($a===$CAR){$f='car';$g='';}
     elseif($a===$CDR){$f='cdr';$g='';}
     elseif($a===$SETF){return $this->compile_setf(cadr($c),$this->compile_expr(caddr($c)));}
+    elseif($a===$AND){
+      return '('.implode('&&',$this->compile_args(cdr($c),true)).'?$LISP_T:null)';}
+    elseif($a===$OR){
+      return '('.implode('||',$this->compile_args(cdr($c),true)).'?$LISP_T:null)';}
     elseif($a===$PLUS){return implode('+',$this->compile_args(cdr($c)));}
     elseif($a===$MINUS){return implode('-',$this->compile_args(cdr($c)));}
     elseif($a===$TIMES){return implode('*',$this->compile_args(cdr($c)));}
