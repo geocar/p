@@ -16,7 +16,7 @@
 tst
 (setf (aref tst 1) 'q)
 tst
-(dolist (x '(a b c d e))
+(dolist (x '(a b c d e) tst)
   (print x))
 (dotimes (x 5)
   (print x))
