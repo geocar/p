@@ -165,17 +165,21 @@ function APPLY($f){ $n=func_num_args(); $a=array();
   return call_user_func_array(array($f,'__invoke'),$a);}
 
 function error($c){throw new Exception(tostring($c));}
-function MACEX($c,&$f){
+function MACEX($c,&$f,&$q){
   global $GLOBAL_MACROS,$PHP,$QUOTE,$FUNCTION;
+  global $BACKQUOTE,$UNQUOTE,$UNQUOTE_SPLICING;
   if(!consp($c))return $c;
   $a=car($c);
   if(symbolp($a)){
-    if(isset($GLOBAL_MACROS[$n=id($a)])){$f=true;
+    if(!$q&&isset($GLOBAL_MACROS[$n=id($a)])){$f=true;
       return APPLY($GLOBAL_MACROS[$n],cdr($c));}
-    if($a===$PHP||$a===$QUOTE||$a===$FUNCTION)return $c;}
-  return cons(MACEX(car($c),$f),MACEX(cdr($c),$f)); }
-function macroexpand1($c){$y=false;return MACEX($c,$y);}
-function macroexpand($c){$y=true;do{$y=false;$c=MACEX($c,$y);}while($y);return $c;}
+    if($a===$PHP||$a===$QUOTE||$a===$FUNCTION)return $c;
+    if($a===$BACKQUOTE)$q++;
+    elseif($a===$UNQUOTE||$a===$UNQUOTE_SPLICING)$q--; }
+  return cons(MACEX(car($c),$f,$q),MACEX(cdr($c),$f,$q)); }
+function macroexpand1($c){$q=0;$y=false;return MACEX($c,$y,$q);}
+function macroexpand($c){$y=true;$q=0;do{$y=false;$c=MACEX($c,$y,$q);}while($y);
+  return $c;}
 
 function AREF_PUT($a,$b,$c){
   if(consp($a)){for(;$b>0&&$a;$b--)$a=cdr($a);if($b)error("bounds");return $a->car=$c;}
