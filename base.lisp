@@ -34,16 +34,6 @@
 (defun cdddr (s) (funcall (php cdddr) s))
 (defun load (s) (funcall (php lisp_load) s))
 (setf #'compile-file #'(php compile_file))
-(defun cond->if form
-  (if form
-    (if (consp (car form))
-       `(if ,(caar form) (progn ,@(cdar form)) ,(apply #'cond->if (cdr form)))
-       (let ((one (gensym)))
-         `(let ((,one ,(caar form)))
-            (if ,one ,one ,(apply #'cond->if (cdr form))))))
-    'nil))
-(defmacro cond form
-  (apply #'cond->if form))
 (defun code-char (c)
   (if (< c 128)
     (funcall (php chr) c)
@@ -52,3 +42,16 @@
   (funcall (php unpack) "N" (funcall (php mb_convert_encoding) s "UCS-4BE" "UTF-8")))
 (setf #'quit #'(php exit))
 (setf #'load #'(php lisp_load))
+(setf #'numberp #'(php is_numeric))
+(defmacro 1+ (n) (if (numberp n) (+ 1 n) `(+ 1 ,n)))
+(defmacro 1- (n) (if (numberp n) (- n 1) `(- ,n 1)))
+(defmacro when (expression . body) `(if ,expression (progn ,@body)))
+(defmacro cond clauses
+  (if (= (length clauses) 1)
+      (if (eq (caar clauses) t)
+          `(progn ,@(cdar clauses))
+        `(when ,(caar clauses)
+            ,@(cdar clauses)))
+    `(if ,(caar clauses)
+         (progn ,@(cdar clauses))
+       (cond ,@(cdr clauses)))))
