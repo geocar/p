@@ -63,3 +63,7 @@
   `(progn
      (funcall #'(php dotimes) (lambda (,var) ,@body) ,count)
      ,@resultform))
+(defun count (what seq)
+  (let ((n 0))
+    (dolist (x seq n)
+      (if (eq x what) (setf n (1+ n))))))
