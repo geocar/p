@@ -448,4 +448,3 @@ function lisp_print($s) {
   elseif(is_array($s)){echo'[';$c='';foreach($s as $x){echo $c,$x;$c=' ';}echo "]\n";}
   else{echo $s;echo "\n";}
 }
-
