@@ -16,3 +16,5 @@
 tst
 (setf (aref tst 1) 'q)
 tst
+(dolist (x '(1 2 3 4 5))
+  (print x))

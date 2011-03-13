@@ -153,6 +153,7 @@ function _V2($c){ $a=array();foreach($c as $k=>$v){$a[$k]=$v;} return $a;}
 function MAPCAR($f){ $n=func_num_args(); $a=array();
   for($i=1;$i<$n;++$i){foreach(NI(func_get_arg($i)) as $c){$a[]=$f->__invoke($c);}}
   return array2cons($a);}
+function DOLIST($f,$a){foreach($a as $x){$f->__invoke($x);}}
 function APPEND(){ $n=func_num_args(); $a=array();
   for($i=0;$i<$n;++$i){ foreach(NI(func_get_arg($i)) as $c){$a[]=$c;}}
   return array2cons($a);}

@@ -55,3 +55,7 @@
     `(if ,(caar clauses)
          (progn ,@(cdar clauses))
        (cond ,@(cdr clauses)))))
+(defmacro dolist ((var listform . resultform) . body)
+  `(progn
+     (funcall #'(php dolist) (lambda (,var) ,@body) ,listform)
+     ,@resultform))
