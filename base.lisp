@@ -43,8 +43,8 @@
 (setf #'quit #'(php exit))
 (setf #'load #'(php lisp_load))
 (setf #'numberp #'(php is_numeric))
-(defmacro 1+ (n) (if (numberp n) (+ 1 n) `(+ 1 ,n)))
-(defmacro 1- (n) (if (numberp n) (- n 1) `(- ,n 1)))
+(defun 1+ (n) (+ 1 n))
+(defun 1- (n) (- n 1))
 (defmacro when (expression . body) `(if ,expression (progn ,@body)))
 (defmacro cond clauses
   (if (= (length clauses) 1)
