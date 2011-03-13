@@ -166,13 +166,13 @@ function APPLY($f){ $n=func_num_args(); $a=array();
 
 function error($c){throw new Exception(tostring($c));}
 function MACEX($c,&$f){
-  global $GLOBAL_MACROS,$PHP;
+  global $GLOBAL_MACROS,$PHP,$QUOTE,$FUNCTION;
   if(!consp($c))return $c;
   $a=car($c);
   if(symbolp($a)){
     if(isset($GLOBAL_MACROS[$n=id($a)])){$f=true;
       return APPLY($GLOBAL_MACROS[$n],cdr($c));}
-    if($a===$PHP)return $c;}
+    if($a===$PHP||$a===$QUOTE||$a===$FUNCTION)return $c;}
   return cons(MACEX(car($c),$f),MACEX(cdr($c),$f)); }
 function macroexpand1($c){$y=false;return MACEX($c,$y);}
 function macroexpand($c){$y=true;do{$y=false;$c=MACEX($c,$y);}while($y);return $c;}
