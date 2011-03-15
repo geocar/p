@@ -43,6 +43,28 @@ class _Symbol {
     return '#:'.$s;
   }
 };
+class _LispThrow extends Exception {
+  static public $n=1234;
+  public function __construct($v){$this->value=$v;}
+}
+function lisp_throw($k,$v){ $f='_LispThrow_'.$k->id; throw new $f($v); }
+function lisp_catch($k,$f){
+  $t='_LispThrow_'.$k->id;
+  $s='_LispCatch_'._LispThrow::$n;
+  _LispThrow::$n++;
+  if(!isset($k->can_lispthrow)){
+    eval("class $t extends _LispThrow {};");
+    $k->can_lispthrow=true;
+  }
+  $o=array();
+  $o[]='function ';
+  $o[]=$s;
+  $o[]='($f){try{return $f->__invoke();}catch(';
+  $o[]=$t;
+  $o[]=' $e){return $e->value;}}';
+  eval(implode('',$o));
+  return $s($f);
+}
 class _NullIterator implements Iterator,Countable{
   public function __construct() { }
   public function current(){ return false;}
@@ -147,6 +169,7 @@ $LT=intern('<');$GT=intern('>');$LTE=intern('<=');$GTE=intern('>=');
 $EQL=intern('=');$NE=intern('/=');$EQ=intern('eq');$AREF=intern('aref');
 $DEFUN = intern('defun');$DEFVAR=intern('defvar');$DEFMACRO=intern('defmacro');
 $PHP= intern('php');$LISP_T=intern('t');$LISP_NIL=intern('nil');$IF=intern('if');
+$THROW=intern('throw');$CATCH=intern('catch');
 function PROGN(){$n=func_num_args();return $n?func_get_arg($n-1):null;}
 function PROG1(){$n=func_num_args();return $n?func_get_arg(0):null;}
 function _V1($a,&$b,$c,$d) { $b=$a;return $d;}

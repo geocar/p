@@ -230,6 +230,7 @@ class _CompilationUnit {
     global $PLUS,$MINUS,$TIMES,$DIVIDE,$MOD,$OR,$AND;
     global $LT,$GT,$LTE,$GTE,$EQL,$NE,$EQ;
     global $DEFUN,$DEFVAR,$DEFMACRO;
+    global $THROW,$CATCH;
     global $DYNAMIC_FUNS,$DYNAMIC_VARS,$GLOBAL_MACROS;
     global $QUOTE,$PHP,$IF,$BACKQUOTE,$AREF;
     global $LISP_T,$LISP_NIL;
@@ -308,6 +309,8 @@ class _CompilationUnit {
     elseif($a===$EQL){return implode('==',$this->compile_args(cdr($c)));}
     elseif($a===$NE){return implode('!=',$this->compile_args(cdr($c)));}
     elseif($a===$EQ){return implode('===',$this->compile_args(cdr($c)));}
+    elseif($a===$THROW){$f='lisp_throw';$g='';}
+    elseif($a===$CATCH){return $this->compile_catch(cadr($c),cddr($c));}
     elseif($a===$FUNCALL){
       $a=cadr($c);
       if(consp($a) && car($a)===$PHP) {
@@ -371,6 +374,11 @@ class _CompilationUnit {
 
       $k="cdr($a)"; }
     return implode("\n",$o);
+  }
+
+  public function compile_catch($tag,$c) {
+    $s=$this->compile_lambda(null,null,$c);
+    return "lisp_catch(".$this->compile_expr($tag).",new $s(".$this->lex.'))';
   }
 
   public function compile_lambda($name,$a, $c) {

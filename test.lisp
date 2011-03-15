@@ -20,3 +20,7 @@ tst
   (print x))
 (dotimes (x 5)
   (print x))
+(catch 'poop
+  (print "top")
+  (throw 'poop "toot")
+  (print "should not be seen"))
