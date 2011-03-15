@@ -47,15 +47,24 @@ class _LispThrow extends Exception {
   static public $n=1234;
   public function __construct($v){$this->value=$v;}
 }
-function lisp_throw($k,$v){ $f='_LispThrow_'.$k->id; throw new $f($v); }
+function lisp_exception($k){
+  global $PHP;
+  if(symbolp($k)) {
+    $t = '_LispThrow_'.$k->id;
+    if(!isset($k->can_lispthrow)){
+      eval("class $t extends _LispThrow {};");
+      $k->can_lispthrow=true;
+    }
+    return $t;
+  }
+  if(!consp($k)||car($k)!==$PHP)error("not exception: $k");
+  return cadr($k); // PHP Exception
+}
+function lisp_throw($k,$v){ $f=lisp_exception($k); throw new $f($v); }
 function lisp_catch($k,$f){
-  $t='_LispThrow_'.$k->id;
+  $t=lisp_exception($k);
   $s='_LispCatch_'._LispThrow::$n;
   _LispThrow::$n++;
-  if(!isset($k->can_lispthrow)){
-    eval("class $t extends _LispThrow {};");
-    $k->can_lispthrow=true;
-  }
   $o=array();
   $o[]='function ';
   $o[]=$s;
