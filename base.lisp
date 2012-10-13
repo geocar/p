@@ -60,6 +60,8 @@
   `(progn
      (funcall #'(php dolist) (lambda (,var) ,@body) ,listform)
      ,@resultform))
+(defmacro return-from (name value)
+  `(funcall #'(php lisp_return_from) ',name ,value))
 (defmacro dotimes ((var count . resultform) . body)
   `(progn
      (funcall #'(php dotimes) (lambda (,var) ,@body) ,count)

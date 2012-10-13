@@ -221,7 +221,7 @@ class _CompilationUnit {
     global $LET, $FLET, $FUNCALL, $SETF, $PROGN,$PROG1,$MAPCAR,$APPLY,$APPEND;
     global $PLUS,$MINUS,$TIMES,$DIVIDE,$MOD,$OR,$AND;
     global $LT,$GT,$LTE,$GTE,$EQL,$NE,$EQ;
-    global $DEFUN,$DEFVAR,$DEFMACRO;
+    global $DEFUN,$DEFVAR,$DEFMACRO,$RETURN;
     global $THROW,$CATCH;
     global $DYNAMIC_FUNS,$DYNAMIC_VARS,$GLOBAL_MACROS;
     global $QUOTE,$PHP,$IF,$BACKQUOTE,$AREF;
@@ -302,6 +302,7 @@ class _CompilationUnit {
     elseif($a===$NE){return implode('!=',$this->compile_args(cdr($c)));}
     elseif($a===$EQ){return implode('===',$this->compile_args(cdr($c)));}
     elseif($a===$THROW){$f='lisp_throw';$g='';}
+    elseif($a===$RETURN){$f='lisp_return';$g='';}
     elseif($a===$CATCH){return $this->compile_catch(cadr($c),cddr($c));}
     elseif($a===$FUNCALL){
       $a=cadr($c);
@@ -417,6 +418,7 @@ class _CompilationUnit {
         break;
       }
     }
+    $o[] = 'try {';
     for($d = null; $c; $c = $d) {
       $d = cdr($c);
       if(!$d) {
@@ -424,6 +426,14 @@ class _CompilationUnit {
       }
       $o[] = $g->compile_expr(car($c));
       $o[] = ';';
+    }
+    $o[] = '} catch(';
+    $o[] = lisp_exception($name,'Return');
+    $o[] = ' $e) { return $e->value; }';
+    if(!is_null($name)) {
+      $o[] = ' catch(';
+      $o[] = lisp_exception(null, 'Return');
+      $o[] = ' $e) { return $e->value; }';
     }
     $o[] = "} };\n";
     eval_helper(implode('', $o));

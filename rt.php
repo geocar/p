@@ -47,13 +47,15 @@ class _LispThrow extends Exception {
   static public $n=1234;
   public function __construct($v){$this->value=$v;}
 }
-function lisp_exception($k){
-  global $PHP;
+function lisp_exception($k,$bk='Throw'){
+  global $PHP, $LISP_NIL;
+  if(is_null($k)) $k=$LISP_NIL;
   if(symbolp($k)) {
-    $t = '_LispThrow_'.$k->id;
-    if(!isset($k->can_lispthrow)){
+    $t = '_Lisp' . $bk . '_'.$k->id;
+    $can = "can_lisp$bk";
+    if(!isset($k->$can)){
       eval("class $t extends _LispThrow {};");
-      $k->can_lispthrow=true;
+      $k->$can=true;
     }
     return $t;
   }
@@ -61,6 +63,8 @@ function lisp_exception($k){
   return cadr($k); // PHP Exception
 }
 function lisp_throw($k,$v){ $f=lisp_exception($k); throw new $f($v); }
+function lisp_return_from($k,$v){ $f=lisp_exception($k,'Return'); throw new $f($v); }
+function lisp_return($v){ return lisp_return_from(null,$v); }
 function lisp_catch($k,$f){
   $t=lisp_exception($k);
   $s='_LispCatch_'._LispThrow::$n;
@@ -176,7 +180,7 @@ $PLUS = intern('+'); $MINUS = intern('-');
 $TIMES = intern('*'); $DIVIDE = intern('*'); $MOD = intern('mod');
 $LT=intern('<');$GT=intern('>');$LTE=intern('<=');$GTE=intern('>=');
 $EQL=intern('=');$NE=intern('/=');$EQ=intern('eq');$AREF=intern('aref');
-$DEFUN = intern('defun');$DEFVAR=intern('defvar');$DEFMACRO=intern('defmacro');
+$DEFUN = intern('defun');$DEFVAR=intern('defvar');$DEFMACRO=intern('defmacro');$RETURN=intern('return');
 $PHP= intern('php');$LISP_T=intern('t');$LISP_NIL=intern('nil');$IF=intern('if');
 $THROW=intern('throw');$CATCH=intern('catch');
 function PROGN(){$n=func_num_args();return $n?func_get_arg($n-1):null;}
