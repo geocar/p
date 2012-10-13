@@ -14,7 +14,7 @@ function tostring($s){
   if(is_object($s))return $s->__toString();
   return ''.$s;
 }
-function closurep($x){ return method_exists($x,'__invoke');}
+function closurep($x){ return method_exists($x,'k');}
 class _Symbol {
   static public $k=array();
   static public $n=1234;
@@ -68,7 +68,7 @@ function lisp_catch($k,$f){
   $o=array();
   $o[]='function ';
   $o[]=$s;
-  $o[]='($f){try{return $f->__invoke();}catch(';
+  $o[]='($f){try{return $f->k();}catch(';
   $o[]=$t;
   $o[]=' $e){return $e->value;}}';
   eval(implode('',$o));
@@ -184,10 +184,10 @@ function PROG1(){$n=func_num_args();return $n?func_get_arg(0):null;}
 function _V1($a,&$b,$c,$d) { $b=$a;return $d;}
 function _V2($c){ $a=array();foreach($c as $k=>$v){$a[$k]=$v;} return $a;}
 function MAPCAR($f){ $n=func_num_args(); $a=array();
-  for($i=1;$i<$n;++$i){foreach(NI(func_get_arg($i)) as $c){$a[]=$f->__invoke($c);}}
+  for($i=1;$i<$n;++$i){foreach(NI(func_get_arg($i)) as $c){$a[]=$f->k($c);}}
   return array2cons($a);}
-function DOLIST($f,$a){foreach($a as $x){$f->__invoke($x);}}
-function DOTIMES($f,$n){for($i=0;$i<$n;++$i){$f->__invoke($i);}}
+function DOLIST($f,$a){foreach($a as $x){$f->k($x);}}
+function DOTIMES($f,$n){for($i=0;$i<$n;++$i){$f->k($i);}}
 function APPEND(){ $n=func_num_args(); $a=array();
   for($i=0;$i<$n;++$i){ foreach(NI(func_get_arg($i)) as $c){$a[]=$c;}}
   return array2cons($a);}
@@ -195,7 +195,7 @@ function APPEND(){ $n=func_num_args(); $a=array();
 function APPLY($f){ $n=func_num_args(); $a=array();
   for($i=1;$i<($n-1);++$n)$a[]=func_get_arg($i);
   if($n>1){foreach(NI(func_get_arg($n-1)) as $c){$a[]=$c;}}
-  return call_user_func_array(array($f,'__invoke'),$a);}
+  return call_user_func_array(array($f,'k'),$a);}
 
 function error($c){throw new Exception(tostring($c));}
 function MACEX($c,&$f,&$q){

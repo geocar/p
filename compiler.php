@@ -73,7 +73,7 @@ class _CompilationUnit {
     $o[] = 'public function __toString(){return "#<operator ';
     $o[] = $name;
     $o[] = '>"; } public function __construct($ignored=null) { }';
-    $o[] = 'public function __invoke($d=0) { global $LISP_T; $n=func_num_args();';
+    $o[] = 'public function k($d=0) { global $LISP_T; $n=func_num_args();';
     $o[] = 'for($i=1;$i<$n;++$i){$c=func_get_arg($i);$d = $d ';
     $o[] = $f;
     $o[] = ' $c;} return $d;} }';
@@ -91,7 +91,7 @@ class _CompilationUnit {
     $o[] = 'public function __toString(){return "#<primitive ';
     $o[] = $name;
     $o[] = '>"; } public function __construct($ignored=null) { }';
-    $o[] = 'public function __invoke() { return call_user_func_array(';
+    $o[] = 'public function k() { return call_user_func_array(';
     $o[] = "'$name',func_get_args()); } };\n";
     eval_helper(implode('',$o));
     return _CompilationUnit::$LAMBDA_OP[$name] = "$s()";
@@ -231,7 +231,7 @@ class _CompilationUnit {
       if(is_null($d=$this->bound($c)))error('not bound: '.tostring($c));
       return $d;}
     if(!consp($c)) return const_data($c);
-    $g='->__invoke';
+    $g='->k';
     if(!symbolp($a=car($c))){
       if(!consp($a)||!symbolp($d=car($a)))error('not fun: '.tostring($a));
       if($LAMBDA===$d||$FUNCTION===$d){$f=$this->compile_expr($a);}//fall thru
@@ -386,7 +386,7 @@ class _CompilationUnit {
       $o[] = 'function ';
       $o[] = symbolp($name)?$name->name:$name;
     }
-    $o[] = '>";} function __construct($p){$this->p=$p;} function __invoke(';
+    $o[] = '>";} function __construct($p){$this->p=$p;} function k(';
     $comma='';
 
     $g=new _CompilationUnit($this);
