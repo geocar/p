@@ -70,10 +70,6 @@ class _CompilationUnit {
     $s = $this->genid();
 
     $o[] = "function $s(){ return new $s(); }; class $s { ";
-    $o[] = 'public function docstring() { return "';
-    $o[] = $name;
-    $o[] = ' operator"; }';
-    $o[] = 'public function prototype() { global $ARGS;return $ARGS; } ';
     $o[] = 'public function __toString(){return "#<operator ';
     $o[] = $name;
     $o[] = '>"; } public function __construct($ignored=null) { }';
@@ -92,10 +88,6 @@ class _CompilationUnit {
     $s = $this->genid();
 
     $o[] = "function $s(){return new $s();}; class $s { ";
-    $o[] = 'public function docstring() { return "';
-    $o[] = $name;
-    $o[] = ' primitive"; }';
-    $o[] = 'public function prototype() { global $ARGS;return $ARGS; } ';
     $o[] = 'public function __toString(){return "#<primitive ';
     $o[] = $name;
     $o[] = '>"; } public function __construct($ignored=null) { }';
@@ -386,16 +378,7 @@ class _CompilationUnit {
     $o = array();
     $s = $this->genid();
 
-    $o[] = "function $s(\$p){return new $s(\$p);}; class $s { public function docstring() { return ";
-    if(is_string(car($c)) && cdr($c)){
-      $o[] = '"' . addslashes(car($c)) . '"';
-      $c = cdr($c);
-    } else {
-      $o[] = 'null';
-    }
-
-    $o[] = '; } function prototype() { return ' . const_data($a) . '; }';
-
+    $o[] = "function $s(\$p){return new $s(\$p);}; class $s {";
     $o[] = 'function __toString(){return "#<';
     if(is_null($name)){
       $o[] = 'closure';
